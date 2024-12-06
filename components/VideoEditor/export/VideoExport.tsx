@@ -45,7 +45,6 @@ export function VideoExport() {
         quality,
         format,
         onProgress: (value) => {
-          // Ensure progress updates smoothly
           setProgress(Math.min(value, 99)); // Keep at 99 until complete
           if (value >= 100) {
             toast.success("Processing complete, preparing download...");
@@ -78,7 +77,7 @@ export function VideoExport() {
     }
   };
 
-  const handleNewVideo = () => {
+  const handleResetVideo = () => {
     try {
       // Reset everything
       useEditorStore.getState().cleanup();
@@ -105,7 +104,7 @@ export function VideoExport() {
         variant="outline"
         size="icon"
         className="h-8 w-8"
-        onClick={handleNewVideo}
+        onClick={handleResetVideo}
         title="Reset"
       >
         <RotateCcw className="h-4 w-4" />

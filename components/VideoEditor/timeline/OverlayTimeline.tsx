@@ -52,7 +52,7 @@ export function OverlayTimeline({
       type: "image" as const,
       timestamp: overlay.timestamp,
       duration: overlay.duration,
-      label: `Image ${overlay.id.slice(0, 4)}`,
+      label: `Image-ID: ${overlay.id.slice(0, 4)}`,
       data: overlay,
     }))
     .sort((a, b) => a.timestamp - b.timestamp);

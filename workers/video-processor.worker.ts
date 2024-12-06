@@ -75,5 +75,4 @@ self.onmessage = async (e) => {
   }
 };
 
-// Ensure TypeScript recognizes this as a module
 export {};

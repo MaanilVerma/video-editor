@@ -9,7 +9,6 @@ async function initFFmpeg() {
 
   ffmpeg = new FFmpeg();
 
-  // Log FFmpeg messages
   ffmpeg.on("log", ({ message }) => {
     console.log("FFmpeg Log:", message);
   });

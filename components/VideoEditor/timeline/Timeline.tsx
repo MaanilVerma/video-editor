@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { TimelineMode } from "@/lib/models/timeline";
 import { TimelineTrimmer } from "./TimelineTrimmer";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { formatTime } from "@/lib/utils/time";
+import { formatTime, getTimeMarkers } from "@/lib/utils/time";
 import { PlayheadHandle } from "./PlayheadHandle";
 import { TrimControls } from "../controls/TrimControls";
 import { toast } from "sonner";
@@ -18,64 +18,6 @@ interface TimelineProps {
   onTrimApply: () => void;
 }
 
-// Helper functions for timeline markers
-function getTimeMarkers(duration: number) {
-  const markers = {
-    major: [] as number[],
-    minor: [] as number[],
-    micro: [] as number[],
-  };
-
-  // Helper to generate evenly spaced markers within 2-98% range
-  const generateMarkers = (count: number) => {
-    return Array.from({ length: count }, (_, i) => {
-      // Calculate percentage between 2% and 98%
-      const percentage = 0.02 + (0.96 * (i + 1)) / (count + 1);
-      return percentage * duration;
-    });
-  };
-
-  if (duration <= 10) {
-    // For very short videos (under 10s)
-    markers.major = generateMarkers(4); // 4 major markers
-    markers.minor = generateMarkers(8); // 8 minor markers (between majors)
-    markers.micro = generateMarkers(16); // 16 micro markers (between minors)
-  } else if (duration <= 60) {
-    // Under 1 minute
-    markers.major = generateMarkers(6); // 6 major markers
-    markers.minor = generateMarkers(12); // 12 minor markers
-    markers.micro = generateMarkers(24); // 24 micro markers
-  } else if (duration <= 300) {
-    // Under 5 minutes
-    markers.major = generateMarkers(5); // 5 major markers
-    markers.minor = generateMarkers(10); // 10 minor markers
-    markers.micro = generateMarkers(20); // 20 micro markers
-  } else {
-    // Over 5 minutes
-    markers.major = generateMarkers(6); // 6 major markers
-    markers.minor = generateMarkers(12); // 12 minor markers
-    markers.micro = generateMarkers(24); // 24 micro markers
-  }
-
-  // Filter out minor markers that are too close to major markers
-  const majorTimes = new Set(markers.major);
-  markers.minor = markers.minor.filter((time) => {
-    return !markers.major.some(
-      (majorTime) => Math.abs(majorTime - time) < duration * 0.02
-    );
-  });
-
-  // Filter out micro markers that are too close to minor or major markers
-  const allLargerMarkers = new Set([...markers.major, ...markers.minor]);
-  markers.micro = markers.micro.filter((time) => {
-    return !Array.from(allLargerMarkers).some(
-      (largerTime) => Math.abs(largerTime - time) < duration * 0.01
-    );
-  });
-
-  return markers;
-}
-
 export function Timeline({
   videoRef,
   isPlaying,
@@ -86,8 +28,6 @@ export function Timeline({
   const {
     duration,
     currentTime,
-    textOverlays,
-    imageOverlays,
     setCurrentTime,
     trimStart,
     trimEnd,
@@ -97,32 +37,29 @@ export function Timeline({
   const [isDragging, setIsDragging] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (mode !== TimelineMode.SCRUB) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = x / rect.width;
-    const newTime = percentage * duration;
-    setCurrentTime(Math.max(0, Math.min(duration, newTime)));
-  };
-
   const generatePreview = async (time: number) => {
+    // If no video element exists, exit early
     if (!videoRef.current) return;
 
+    // Get reference to video element and set the playback position
     const video = videoRef.current;
     video.currentTime = time;
 
+    // Wait for the video to finish seeking to the new time
     await new Promise((resolve) => {
       video.onseeked = resolve;
     });
 
+    // Create a canvas element to capture the video frame
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+
+    // Get canvas context and draw the current video frame
     const ctx = canvas.getContext("2d");
     ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    // Convert the canvas to a base64 data URL and return it
     return canvas.toDataURL();
   };
 

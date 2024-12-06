@@ -1,6 +1,8 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 
+// Database schema definition for IndexedDB
 interface EditorDB extends DBSchema {
+  // Store for video files with metadata
   "video-files": {
     key: string;
     value: {
@@ -10,10 +12,11 @@ interface EditorDB extends DBSchema {
       lastModified: number;
     };
   };
+  // Store for overlay image files with metadata
   "overlay-images": {
     key: string;
     value: {
-      file: string;
+      file: string; // Base64 encoded image data
       name: string;
       type: string;
       lastModified: number;
@@ -21,9 +24,11 @@ interface EditorDB extends DBSchema {
   };
 }
 
+// Storage class to handle video and image data persistence
 class EditorStorage {
   private db: IDBPDatabase<EditorDB> | null = null;
 
+  // Initialize IndexedDB database
   async init() {
     this.db = await openDB<EditorDB>("editor-storage", 1, {
       upgrade(db) {
@@ -33,6 +38,7 @@ class EditorStorage {
     });
   }
 
+  // Convert File object to base64 string
   private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -58,6 +64,7 @@ class EditorStorage {
     });
   }
 
+  // Store an overlay image with given ID
   async storeOverlayImage(id: string, file: File) {
     if (!this.db) await this.init();
 
@@ -103,6 +110,7 @@ class EditorStorage {
     }
   }
 
+  // Get base64 URL for an overlay image by ID
   async getOverlayImageUrl(id: string) {
     if (!this.db) await this.init();
 
@@ -129,6 +137,7 @@ class EditorStorage {
     }
   }
 
+  // Store current video file
   async storeVideo(file: File) {
     if (!this.db) await this.init();
 
@@ -148,6 +157,7 @@ class EditorStorage {
     return URL.createObjectURL(file);
   }
 
+  // Get current video as File object
   async getVideo() {
     if (!this.db) await this.init();
     const data = await this.db!.get("video-files", "current-video");
@@ -159,6 +169,7 @@ class EditorStorage {
     });
   }
 
+  // Get URL for current video
   async getVideoUrl() {
     if (!this.db) await this.init();
     const data = await this.db!.get("video-files", "current-video");
@@ -167,6 +178,7 @@ class EditorStorage {
     return URL.createObjectURL(data.file);
   }
 
+  // Get overlay image as File object by ID
   async getOverlayImage(id: string) {
     if (!this.db) await this.init();
     const data = await this.db!.get("overlay-images", id);
@@ -179,6 +191,7 @@ class EditorStorage {
     });
   }
 
+  // Convert base64 string back to Blob
   private base64ToBlob(base64: string, type: string): Blob {
     try {
       console.log("Converting base64 to blob, type:", type);
@@ -207,6 +220,7 @@ class EditorStorage {
     }
   }
 
+  // Clear all stored data
   async clearAll() {
     if (!this.db) await this.init();
 

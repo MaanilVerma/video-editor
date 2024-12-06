@@ -78,7 +78,7 @@ export function TextOverlayControls() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2 mt-1.5">
           <Label className="text-white/80">Color</Label>
           <ColorPicker color={color} onChange={setColor} />
         </div>
