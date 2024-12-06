@@ -1,9 +1,4 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { fetchFile } from "@ffmpeg/util";
-import type {
-  VideoEffect,
-  VideoTransition,
-} from "@/lib/services/video-effects";
 
 let ffmpeg: FFmpeg | null = null;
 
@@ -14,56 +9,7 @@ async function initFFmpeg() {
   }
 }
 
-function getEffectFilter(effect: VideoEffect, intensity = 1): string {
-  switch (effect) {
-    case "grayscale":
-      return "colorchannelmixer=.3:.3:.3:0:.3:.3:.3:0:.3:.3:.3";
-    case "sepia":
-      return "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131";
-    case "blur":
-      return `gblur=sigma=${2 * intensity}`;
-    case "sharpen":
-      return `unsharp=${3 * intensity}:${3 * intensity}:${intensity}`;
-    case "brightness":
-      return `eq=brightness=${intensity - 0.5}`;
-    case "contrast":
-      return `eq=contrast=${intensity}`;
-    case "saturation":
-      return `eq=saturation=${intensity}`;
-    default:
-      return "";
-  }
-}
-
-function getTransitionFilter(
-  transition: VideoTransition,
-  duration = 1
-): string {
-  switch (transition) {
-    case "fade":
-      return `fade=t=in:st=0:d=${duration},fade=t=out:st=${duration - 1}:d=1`;
-    case "crossfade":
-      return `xfade=transition=fade:duration=${duration}`;
-    case "wipe":
-      return `wipe=duration=${duration}`;
-    case "slide":
-      return `xfade=transition=slideright:duration=${duration}`;
-    case "zoom":
-      return `xfade=transition=zoom:duration=${duration}`;
-    default:
-      return "";
-  }
-}
-
-async function processVideo(
-  videoData: ArrayBuffer,
-  options: {
-    effect?: VideoEffect;
-    transition?: VideoTransition;
-    intensity?: number;
-    duration?: number;
-  }
-) {
+async function processVideo(videoData: ArrayBuffer) {
   try {
     await initFFmpeg();
     if (!ffmpeg) throw new Error("Failed to initialize FFmpeg");
@@ -76,12 +22,6 @@ async function processVideo(
 
     // Build filter chain
     const filters: string[] = [];
-    if (options.effect && options.effect !== "none") {
-      filters.push(getEffectFilter(options.effect, options.intensity));
-    }
-    if (options.transition && options.transition !== "none") {
-      filters.push(getTransitionFilter(options.transition, options.duration));
-    }
 
     // Report progress periodically
     let progress = 0;
@@ -121,7 +61,7 @@ self.onmessage = async (e) => {
 
     switch (type) {
       case "process":
-        const result = await processVideo(payload.videoData, payload.options);
+        const result = await processVideo(payload.videoData);
         self.postMessage({ type: "complete", payload: result });
         break;
       default:
